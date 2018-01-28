@@ -5,22 +5,16 @@ using System.Web.Security;
 using System.Configuration;
 using System.Text;
 
+//ASP.NET Core Identity - Version 3 Password Hashing (SHA256, 10000 iterations)
 namespace Microsoft.AspNetCore.Identity
 {
-    class HasherClassv3
+    class HasherClassv3 : HasherBase
     {
 
         public string PasswordHash(string plaintext)
         {
             IPasswordHasher<HasherClassv3> passwordHasher = new PasswordHasher<HasherClassv3>();
             return passwordHasher.HashPassword(null, plaintext);
-        }
-
-        public string ConvertToHex(string hash)
-        {
-            byte[] bytes = Convert.FromBase64String(hash);
-            string hex = BitConverter.ToString(bytes);
-            return hex;
         }
 
         public string ConvertToHashcat(string hash)
@@ -55,21 +49,15 @@ namespace Microsoft.AspNetCore.Identity
     }
 }
 
+//ASP.NET Identity - Version 2 Password Hashing (SHA1, 1000 iterations)
 namespace Microsoft.AspNet.Identity
 {
-    class HasherClassv2
+    class HasherClassv2 : HasherBase
     {
         public string PasswordHash(string plaintext)
         {
             IPasswordHasher passwordHasher = new PasswordHasher();
             return passwordHasher.HashPassword(plaintext);
-        }
-
-        public string ConvertToHex(string hash)
-        {
-            byte[] bytes = Convert.FromBase64String(hash);
-            string hex = BitConverter.ToString(bytes);
-            return hex;
         }
 
         public string ConvertToHashcat(string hash)
@@ -91,8 +79,18 @@ namespace Microsoft.AspNet.Identity
 
     }
 }
+//Common class for both Identity Password Hashes
+public class HasherBase
+{
+    public string ConvertToHex(string hash)
+    {
+        byte[] bytes = Convert.FromBase64String(hash);
+        string hex = BitConverter.ToString(bytes);
+        return hex;
+    }
+}
 
-
+// ASP.NET Forms-based encryption of passwords
 public class PasswordEncrypt : SqlMembershipProvider
 {
     public string GetClearTextPassword(string encryptedPwd)
@@ -123,30 +121,68 @@ class Program
     static void Main()
     {
         PasswordEncrypt PasswordEncryptObject = new PasswordEncrypt();
+        Program program = new Program();
+
         Console.WriteLine("Enter password to be encrypted:");
         string plaintext = Console.ReadLine();
 
         string encoded = PasswordEncryptObject.SetPassword(plaintext);
         Console.WriteLine($"Encrypted output is:{encoded}");
+        program.ConsoleContinue();
         Console.ReadKey();
 
         string plaintext2 = PasswordEncryptObject.GetClearTextPassword(encoded);
-        Console.WriteLine($"Plaintext is:{plaintext2}");
+        Console.WriteLine($"Decrypted. Plaintext is:{plaintext2}");
+        program.ConsoleContinue();
         Console.ReadKey();
 
-        //HasherClassv3 HasherClassObject = new HasherClassv3();
+        Console.WriteLine("Select hash type. '2' for version 2 or '3' for version 3");
+        UInt32 option = program.GetOption();
+        string hash = program.Hash(plaintext2, option);
 
-        //Console.WriteLine("Please provide the password to be hashed:");
-        //string plaintext = Console.ReadLine();
+        Console.WriteLine($"Hashed output is: {hash}");
+        Console.WriteLine("Press any key to exit");
+        Console.ReadKey();
+    }
 
-        //string hash = HasherClassObject.PasswordHash(plaintext);
-        //string hex = HasherClassObject.ConvertToHex(hash);
-        //string hashcat = HasherClassObject.ConvertToHashcat(hash);
+    private string Hash(string plaintext, UInt32 option) //Option defines hasher version 2 or 3
+    {
+        if (option == 2)
+        {
+            HasherClassv2 HasherClassObject = new HasherClassv2();
+            string hash = HasherClassObject.PasswordHash(plaintext);
+            return hash;
+        }
+        else if (option == 3)
+        {
+            HasherClassv3 HasherClassObject = new HasherClassv3();
+            string hash = HasherClassObject.PasswordHash(plaintext);
+            return hash;
+        }
+        else
+        {
+            throw new SystemException("Invalid option selected");
+        }
 
-        //Console.WriteLine($"The result is: {hash}");
-        //Console.WriteLine($"The hex is: {hex}");
-        //Console.WriteLine($"Hashcat: {hashcat}");
-        //Console.WriteLine("Press any key to exit");
-        //Console.ReadKey();
+    }
+
+    private void ConsoleContinue()
+    {
+        Console.WriteLine("Press any key to continue");
+    }
+
+    private UInt32 GetOption()
+    {
+        string input = Console.ReadLine();
+        try
+        {
+            UInt32 option = Convert.ToUInt32(input);
+            return option;
+        }
+        catch
+        {
+            Console.WriteLine("Invalid option selected. Defaulting to v3.");
+            return 3;
+        }
     }
 }
