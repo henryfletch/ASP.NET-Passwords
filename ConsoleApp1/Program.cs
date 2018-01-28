@@ -1,4 +1,9 @@
 ﻿using System;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNet.Identity;
+using System.Web.Security;
+using System.Configuration;
+using System.Text;
 
 namespace Microsoft.AspNetCore.Identity
 {
@@ -87,23 +92,61 @@ namespace Microsoft.AspNet.Identity
     }
 }
 
+
+public class PasswordEncrypt : SqlMembershipProvider
+{
+    public string GetClearTextPassword(string encryptedPwd)
+    {
+        byte[] encodedPassword = Convert.FromBase64String(encryptedPwd);
+        byte[] bytes = DecryptPassword(encodedPassword);
+        if (bytes == null)
+        {
+            return null;
+        }
+        return Encoding.Unicode.GetString(bytes);//, 0x10, bytes.Length - 0x10);
+
+    }
+
+    public string SetPassword(string cleartext)
+    {
+        byte[] bytes = Encoding.Unicode.GetBytes(cleartext);
+        byte[] bytesOutput = EncryptPassword(bytes);
+        string encoded = Convert.ToBase64String(bytesOutput);
+        return encoded;
+    }
+}
+
+
+
 class Program
 {
     static void Main()
     {
-        Microsoft.AspNetCore.Identity.HasherClassv3 HasherClassObject = new Microsoft.AspNetCore.Identity.HasherClassv3();
-
-        Console.WriteLine("Please provide the password to be hashed:");
+        PasswordEncrypt PasswordEncryptObject = new PasswordEncrypt();
+        Console.WriteLine("Enter password to be encrypted:");
         string plaintext = Console.ReadLine();
 
-        string hash = HasherClassObject.PasswordHash(plaintext);
-        string hex = HasherClassObject.ConvertToHex(hash);
-        string hashcat = HasherClassObject.ConvertToHashcat(hash);
-
-        Console.WriteLine($"The result is: {hash}");
-        Console.WriteLine($"The hex is: {hex}");
-        Console.WriteLine($"Hashcat: {hashcat}");
-        Console.WriteLine("Press any key to exit");
+        string encoded = PasswordEncryptObject.SetPassword(plaintext);
+        Console.WriteLine($"Encrypted output is:{encoded}");
         Console.ReadKey();
+
+        string plaintext2 = PasswordEncryptObject.GetClearTextPassword(encoded);
+        Console.WriteLine($"Plaintext is:{plaintext2}");
+        Console.ReadKey();
+
+        //HasherClassv3 HasherClassObject = new HasherClassv3();
+
+        //Console.WriteLine("Please provide the password to be hashed:");
+        //string plaintext = Console.ReadLine();
+
+        //string hash = HasherClassObject.PasswordHash(plaintext);
+        //string hex = HasherClassObject.ConvertToHex(hash);
+        //string hashcat = HasherClassObject.ConvertToHashcat(hash);
+
+        //Console.WriteLine($"The result is: {hash}");
+        //Console.WriteLine($"The hex is: {hex}");
+        //Console.WriteLine($"Hashcat: {hashcat}");
+        //Console.WriteLine("Press any key to exit");
+        //Console.ReadKey();
     }
 }
