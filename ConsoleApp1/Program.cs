@@ -101,7 +101,7 @@ public class PasswordEncrypt : SqlMembershipProvider
         {
             return null;
         }
-        return Encoding.Unicode.GetString(bytes);//, 0x10, bytes.Length - 0x10);
+        return Encoding.Unicode.GetString(bytes);//, 0x10, bytes.Length - 0x10); //This bit removes the salt if it were present
 
     }
 
@@ -115,13 +115,12 @@ public class PasswordEncrypt : SqlMembershipProvider
 }
 
 
-
 class Program
 {
     static void Main()
     {
         PasswordEncrypt PasswordEncryptObject = new PasswordEncrypt();
-        Program program = new Program();
+        Program program = new Program(); //This is a bit dodgy?
 
         Console.WriteLine("Enter password to be encrypted:");
         string plaintext = Console.ReadLine();
@@ -161,7 +160,8 @@ class Program
         }
         else
         {
-            throw new SystemException("Invalid option selected");
+            Console.WriteLine("Invalid option selected.");
+            return null;
         }
 
     }
